@@ -2,10 +2,43 @@ package DBIx::Foo;
 
 use strict;
 
+use Log::Any qw($log);
+
 use Exporter;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref dbh_do);
+
+our $VERSION = '0.01';
+
+sub new {
+    my ($class) = shift;
+    $class->connect(@_);
+}    
+
+sub connect {
+    my ($class, @args) = @_;
+
+    if (defined $arguments[0] and UNIVERSAL::isa($arguments[0], 'DBI::db')) {
+        $self->{dont_disconnect} = 1;
+		$self->{dbh} = shift @arguments;
+		Carp::carp("Additional arguments for $class->connect are ignored") if @arguments;
+    } else {
+		$arguments[3]->{PrintError} = 0
+	    unless defined $arguments[3] and exists $arguments[3]{PrintError};
+        $arguments[3]->{RaiseError} = 1
+            unless $no_raiseerror
+            or defined $arguments[3] and exists $arguments[3]{RaiseError};
+		$self->{dbh} = DBI->connect(@arguments);
+    }
+
+    return undef unless $self->{dbh};
+
+    $self->{dbd} = $self->{dbh}->{Driver}->{Name};
+    bless $self, $class;
+
+    return $self;
+}
 
 sub selectrow
 {
@@ -13,11 +46,9 @@ sub selectrow
 
 	nice_params(\$opts, \@args);
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectrow');
-
 	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $row;
 }
@@ -28,11 +59,9 @@ sub selectrow_hashref
 
 	nice_params(\$opts, \@args);
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectrow_hashref');
-
 	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $row;
 }
@@ -43,11 +72,9 @@ sub selectrow_array
 
 	nice_params(\$opts, \@args);
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectrow_array');
-
 	my @row = $self->dbh->selectrow_array($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $row[0] if scalar @row == 1; # for compatibility
 
@@ -60,11 +87,9 @@ sub selectall
 
 	my $opts = { Slice => {} };
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectall');
-
 	my $rows = $self->dbh->selectall_arrayref($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $rows;
 }
@@ -75,11 +100,9 @@ sub selectall_arrayref
 
 	nice_params(\$opts, \@args);
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectall_arrayref');
-
 	my $rows = $self->dbh->selectall_arrayref($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $rows;
 }
@@ -90,11 +113,9 @@ sub selectall_hashref
 
 	nice_params(\$opts, \@args);
 
-    my $logger = Log::Log4perl->get_logger('db.simplequery.selectall_hashref');
-
 	my $rows = $self->dbh->selectall_hashref($sql, $key_field, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	return $rows;
 }
@@ -105,8 +126,6 @@ sub dbh_do
 
 	nice_params(\$opts, \@args);
 
-	my $logger = Log::Log4perl->get_logger('db.simplequery.dbh_do');
-
 	# MSSQL insert requires extra SCOPE_IDENTITY() call to give inserted value - current best solution MT (only way I can make it work...)
 	if ($self->dbh->get_info(17) eq 'Microsoft SQL Server' && $sql =~ /^insert/i) {
 		
@@ -116,13 +135,13 @@ sub dbh_do
 	
 	my $result = $self->dbh->do($sql, $opts, @args);
 
-	log_query($self->dbh, $sql, \@args, $logger);
+	log_query($self->dbh, $sql, \@args);
 
 	if ($result && $sql =~ /^insert/i) {
 		
 		my $newid = $self->dbh->{mysql_insertid};
 		
-		$logger->debug("Got insertid : $newid");
+		$log->debug("Got insertid : $newid");
 		
 		return $newid;
 	}
@@ -136,32 +155,30 @@ sub mssql_insert
 {
 	my ($dbh, $sql, $opts, @args) = @_;
 
-	my $logger = Log::Log4perl->get_logger('db.simplequery.mssql_insert');
-
 	$sql .= ';' unless $sql =~ /;\s*/;
 	$sql .= "select SCOPE_IDENTITY();";
 
 	my $newid = $dbh->selectrow_array($sql, $opts, @args);
 	
-	log_query($dbh, $sql, \@args, $logger);
+	log_query($dbh, $sql, \@args);
 	
 	return $newid;
 }
 
 sub log_query
 {
-	my ($dbh, $sql, $args, $logger) = @_;
+	my ($dbh, $sql, $args) = @_;
 
 	# use the 'caller' function name to work out context
 	my $caller = ( caller(2) )[3];
 
 	if ($dbh->err) {
 
-		$logger->error($dbh->errstr . " - $sql (" . join(",", @$args) . ") called by $caller");
+		$log->error($dbh->errstr . " - $sql (" . join(",", @$args) . ") called by $caller");
 
 	} else {
 
-		$logger->debug("$sql (" . join(",", @$args) . ") called by $caller");
+		$log->debug("$sql (" . join(",", @$args) . ") called by $caller");
 	}
 }
 
@@ -183,8 +200,3 @@ sub nice_params
 }
 
 1;
-
-
-
-1;
-
