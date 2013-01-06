@@ -4,10 +4,6 @@ use strict;
 
 use Storable;
 
-####################################################
-# Constructor
-#
-
 sub new {
 
         my $class = $_[0];
@@ -149,7 +145,7 @@ sub WhereClause {
 
 	$search = "($search)" if scalar keys %{$self->{search_fields}} > 1;
 
-	for $field (keys %{$self->{filter_fields}}) {
+	for my $field (keys %{$self->{filter_fields}}) {
 
 		# TODO May need to handle various data types here e.g. numeric, date
 		# but for now mysql will accept these as strings
@@ -174,7 +170,7 @@ sub WhereClause {
 		}
 	}
 
-	for $field (keys %{$self->{match_fields}}) {
+	for my $field (keys %{$self->{match_fields}}) {
 
 		$match .= " and " if $match;
 
@@ -184,11 +180,8 @@ sub WhereClause {
 
 	$predicate = $self->{predicate_fields}->{predicate};
 
-
 	if ($self->{sql_fields}) {
-		use Data::Dumper;
-		warn 'xxx' . Dumper($self);
-		for $field (@{$self->{sql_fields}}) {
+		for my $field (@{$self->{sql_fields}}) {
 
 			$sql_fields .= " and " if $sql_fields;
 			$sql_fields .= $field;
@@ -226,7 +219,7 @@ sub SortOrder {
 	# TODO Add logic to build sort order clause from array
 	if ($self->{sort}) {
 
-		foreach $sortfield (@{$self->{sort}}) {
+		foreach my $sortfield (@{$self->{sort}}) {
 
 			$orderby .= ", " if $orderby;
 
@@ -315,7 +308,7 @@ sub addSort {
 
 	if (ref($field) eq 'HASH') {
 
-		$data = \%{$field};
+		my $data = \%{$field};
 
 		$field = $data->{sortfield};
 		$order = $data->{sortorder};

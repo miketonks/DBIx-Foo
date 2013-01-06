@@ -2,6 +2,10 @@ package DBIx::Foo;
 
 use strict;
 
+use DBIx::Foo::SearchQuery;
+use DBIx::Foo::SimpleQuery;
+use DBIx::Foo::UpdateQuery;
+
 use Log::Any qw($log);
 
 use Exporter;
@@ -17,8 +21,10 @@ sub new {
 }    
 
 sub connect {
-    my ($class, @args) = @_;
+    my ($class, @arguments) = @_;
 
+	my $self = {};
+	
     if (defined $arguments[0] and UNIVERSAL::isa($arguments[0], 'DBI::db')) {
         $self->{dont_disconnect} = 1;
 		$self->{dbh} = shift @arguments;
@@ -27,8 +33,7 @@ sub connect {
 		$arguments[3]->{PrintError} = 0
 	    unless defined $arguments[3] and exists $arguments[3]{PrintError};
         $arguments[3]->{RaiseError} = 1
-            unless $no_raiseerror
-            or defined $arguments[3] and exists $arguments[3]{RaiseError};
+            unless defined $arguments[3] and exists $arguments[3]{RaiseError};
 		$self->{dbh} = DBI->connect(@arguments);
     }
 
@@ -40,163 +45,14 @@ sub connect {
     return $self;
 }
 
-sub selectrow
-{
-	my ($self, $sql, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $row;
+sub disconnect {
+	my $self = shift;
+	$self->{dbh}->disconnect();	
 }
 
-sub selectrow_hashref
-{
-	my ($self, $sql, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $row;
-}
-
-sub selectrow_array
-{
-	my ($self, $sql, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	my @row = $self->dbh->selectrow_array($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $row[0] if scalar @row == 1; # for compatibility
-
-	return @row;
-}
-
-sub selectall
-{
-	my ($self, $sql, @args) = @_;
-
-	my $opts = { Slice => {} };
-
-	my $rows = $self->dbh->selectall_arrayref($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $rows;
-}
-
-sub selectall_arrayref
-{
-	my ($self, $sql, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	my $rows = $self->dbh->selectall_arrayref($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $rows;
-}
-
-sub selectall_hashref
-{
-	my ($self, $sql, $key_field, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	my $rows = $self->dbh->selectall_hashref($sql, $key_field, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	return $rows;
-}
-
-sub dbh_do
-{
-	my ($self, $sql, $opts, @args) = @_;
-
-	nice_params(\$opts, \@args);
-
-	# MSSQL insert requires extra SCOPE_IDENTITY() call to give inserted value - current best solution MT (only way I can make it work...)
-	if ($self->dbh->get_info(17) eq 'Microsoft SQL Server' && $sql =~ /^insert/i) {
-		
-		return mssql_insert($self->dbh, $sql, $opts, @args);
-	}
-	
-	
-	my $result = $self->dbh->do($sql, $opts, @args);
-
-	log_query($self->dbh, $sql, \@args);
-
-	if ($result && $sql =~ /^insert/i) {
-		
-		my $newid = $self->dbh->{mysql_insertid};
-		
-		$log->debug("Got insertid : $newid");
-		
-		return $newid;
-	}
-	else {
-		
-		return $result;
-	}
-}
-
-sub mssql_insert
-{
-	my ($dbh, $sql, $opts, @args) = @_;
-
-	$sql .= ';' unless $sql =~ /;\s*/;
-	$sql .= "select SCOPE_IDENTITY();";
-
-	my $newid = $dbh->selectrow_array($sql, $opts, @args);
-	
-	log_query($dbh, $sql, \@args);
-	
-	return $newid;
-}
-
-sub log_query
-{
-	my ($dbh, $sql, $args) = @_;
-
-	# use the 'caller' function name to work out context
-	my $caller = ( caller(2) )[3];
-
-	if ($dbh->err) {
-
-		$log->error($dbh->errstr . " - $sql (" . join(",", @$args) . ") called by $caller");
-
-	} else {
-
-		$log->debug("$sql (" . join(",", @$args) . ") called by $caller");
-	}
-}
-
-sub nice_params
-{
-	my ($opts_ref, $args_ref) = @_;
-
-	my $opts = $$opts_ref;
-
-	return unless defined $opts;
-
-	unless (ref($opts) eq 'HASH') { #allow $opts hashref to be omitted
-
-		unshift @$args_ref, $opts;
-		$$opts_ref = {};
-
-		$opts_ref = \$opts;
-	}
+sub dbh {
+	my $self = shift;
+	return $self->{dbh};
 }
 
 1;
