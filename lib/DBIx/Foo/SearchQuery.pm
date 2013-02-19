@@ -153,16 +153,16 @@ sub WhereClause {
 		$filter .= " and " if $filter;
 
 		if (ref($self->{filter_fields}->{$field}) eq 'ARRAY') {
-		
+
 			my @placeholders;
-			
+
 			foreach my $value (@{$self->{filter_fields}->{$field}}) {
-				
+
 				push @placeholders, '?';
 				push @args, $value;
 			}
-			
-			$filter .= "$field in (" . (join ',', @placeholders) . ')'; 
+
+			$filter .= "$field in (" . (join ',', @placeholders) . ')';
 		}
 		else {
 			$filter .= "$field = ?";
@@ -259,7 +259,7 @@ sub addSearch
 }
 
 
-sub addFilter 
+sub addFilter
 {
 	my ($self, $field, $value) = @_;
 
@@ -268,7 +268,7 @@ sub addFilter
 	}
 }
 
-sub addMatch 
+sub addMatch
 {
 	my ($self, $field, $value) = @_;
 
@@ -289,7 +289,7 @@ sub addPredicate {
 sub addSql
 {
 	# Allows addition of free sql as an extra field
-	# intended use e.g. $query->addSql("PublisherID in (select PublisherID from publishers where PublisherName like '%" . $self->param('searchpublisher') . "%')" ) if $self->param('searchpublisher');
+	# intended use e.g. $query->addSql("OtherID in (select OtherID from others where OtherName like '%" . $self->param('other') . "%')" ) if $self->param('other');
 
 	my ($self, $value) = @_;
 

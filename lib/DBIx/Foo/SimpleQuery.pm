@@ -7,7 +7,7 @@ use Log::Any qw($log);
 use Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref do);
+our @EXPORT = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref dbh_do);
 
 our $VERSION = '0.01';
 
@@ -16,7 +16,7 @@ sub selectrow
 {
 	my ($self, $sql, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 2;
 
 	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
 
@@ -29,7 +29,7 @@ sub selectrow_hashref
 {
 	my ($self, $sql, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 2;
 
 	my $row = $self->dbh->selectrow_hashref($sql, $opts, @args);
 
@@ -42,7 +42,7 @@ sub selectrow_array
 {
 	my ($self, $sql, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 2;
 
 	my @row = $self->dbh->selectrow_array($sql, $opts, @args);
 
@@ -70,7 +70,7 @@ sub selectall_arrayref
 {
 	my ($self, $sql, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 2;
 
 	my $rows = $self->dbh->selectall_arrayref($sql, $opts, @args);
 
@@ -83,7 +83,7 @@ sub selectall_hashref
 {
 	my ($self, $sql, $key_field, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 3;
 
 	my $rows = $self->dbh->selectall_hashref($sql, $key_field, $opts, @args);
 
@@ -92,29 +92,28 @@ sub selectall_hashref
 	return $rows;
 }
 
-sub do
+sub dbh_do
 {
 	my ($self, $sql, $opts, @args) = @_;
 
-	nice_params(\$opts, \@args);
+	nice_params(\$opts, \@args) if scalar @_ > 2;
 
 	# MSSQL insert requires extra SCOPE_IDENTITY() call to give inserted value - current best solution MT (only way I can make it work...)
 	if ($self->dbh->get_info(17) eq 'Microsoft SQL Server' && $sql =~ /^insert/i) {
-		
+
 		return mssql_insert($self->dbh, $sql, $opts, @args);
 	}
-	
-	
+
 	my $result = $self->dbh->do($sql, $opts, @args);
 
 	log_query($self->dbh, $sql, \@args);
 
-	if ($result && $sql =~ /^insert/i) {
-		
-		if (my $newid = $self->dbh->{mysql_insertid}) {
-		
+	if ($result && $sql =~ /^insert into (\w+)/i) {
+
+		if (my $newid = $self->dbh->last_insert_id(undef, undef, $1, undef)) {
+
 			$log->debug("Got insertid : $newid");
-		
+
 			return $newid;
 		}
 		else {
@@ -122,7 +121,7 @@ sub do
 		}
 	}
 	else {
-		
+
 		return $result;
 	}
 }
@@ -135,9 +134,9 @@ sub mssql_insert
 	$sql .= "select SCOPE_IDENTITY();";
 
 	my $newid = $dbh->selectrow_array($sql, $opts, @args);
-	
+
 	log_query($dbh, $sql, \@args);
-	
+
 	return $newid;
 }
 
@@ -164,7 +163,7 @@ sub nice_params
 
 	my $opts = $$opts_ref;
 
-	return unless defined $opts;
+	#return unless defined $opts;
 
 	unless (ref($opts) eq 'HASH') { #allow $opts hashref to be omitted
 

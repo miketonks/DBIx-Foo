@@ -13,6 +13,12 @@ requires       'DBI'  => 0;
 requires       'Exporter'  => 0;
 requires       'Log::Any'  => 0;
 
+# Recommended modules
+recommends 'DBD::SQLite' => 0;
+
+# Modules required for testing
+test_requires 'Test::More' => 0;
+
 #manifest_skip;
 
 #no_index directory => 'sample';

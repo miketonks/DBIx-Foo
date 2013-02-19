@@ -3,7 +3,7 @@ package DBIx::Foo::UpdateQuery;
 use strict;
 
 use Tie::IxHash;
-
+use Log::Any qw($log);
 
 ####################################################
 # Constructor
@@ -200,21 +200,19 @@ sub DoInsert {
 
 	$dbh = $self->{dbh} unless $dbh;
 
-    my $logger = Log::Log4perl->get_logger('db.updatequery.DoInsert');
-
 	my ($sql, @args) = $self->InsertQuery();
 
 	my $rows;
 
 	$dbh->do($sql, {}, @args);
 
-	log_query($dbh, $sql, \@args, $logger);
+	log_query($dbh, $sql, \@args);
 
 	return 0 if $dbh->err;
 
-	my $newid = $dbh->{mysql_insertid};
+	my $newid = $dbh->last_insert_id(undef, undef, $self->{table}, undef);
 
-	$logger->info("Insert ID: $newid");
+	$log->info("Insert ID: $newid");
 
 	return $newid;
 }
@@ -225,24 +223,22 @@ sub DoUpdate {
 
 	$dbh = $self->{dbh} unless $dbh;
 
-    my $logger = Log::Log4perl->get_logger('db.updatequery.DoUpdate');
-
 	my ($sql, @args) = $self->UpdateQuery();
 
 	unless (keys %{$self->{keys}}) {
 
-		$logger->error("Update query with no keys not allowed: $sql (" . join(",", @args) . ")");
+		$log->error("Update query with no keys not allowed: $sql (" . join(",", @args) . ")");
 
 		return undef;
 	}
 
 	my $rows = $dbh->do($sql, {}, @args);
 
-	log_query($dbh, $sql, \@args, $logger);
+	log_query($dbh, $sql, \@args);
 
 	return 0 if $dbh->err;
 
-	$logger->info("Updated: $rows");
+	$log->info("Updated: $rows");
 
 	return($rows);
 }
@@ -266,17 +262,15 @@ sub DoDelete {
 
 	$dbh = $self->{dbh} unless $dbh;
 
-    my $logger = Log::Log4perl->get_logger('db.updatequery.DoDelete');
-
 	my ($sql, @args) = $self->DeleteQuery();
 
 	my $rows = $dbh->do($sql, {}, @args);
 
-	log_query($dbh, $sql, \@args, $logger);
+	log_query($dbh, $sql, \@args);
 
 	return 0 if $dbh->err;
 
-	$logger->info("Deleted: $rows");
+	$log->info("Deleted: $rows");
 
 	return $rows;
 }
@@ -284,18 +278,18 @@ sub DoDelete {
 
 sub log_query
 {
-	my ($dbh, $sql, $args, $logger) = @_;
+	my ($dbh, $sql, $args) = @_;
 
 	# use the 'caller' function name to work out context
 	my $caller = ( caller(2) )[3];
 
 	if ($dbh->err) {
 
-		$logger->error($dbh->errstr . " - $sql (" . join(",", @$args) . ") called by $caller");
+		$log->error($dbh->errstr . " - $sql (" . join(",", @$args) . ") called by $caller");
 
 	} else {
 
-		$logger->debug("$sql (" . join(",", @$args) . ") called by $caller");
+		$log->debug("$sql (" . join(",", @$args) . ") called by $caller");
 	}
 }
 
