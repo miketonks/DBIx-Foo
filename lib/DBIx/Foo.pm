@@ -15,7 +15,7 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref dbh_do do err last_insert_id);
 our %EXPORT_TAGS = (all => [@EXPORT_OK]);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
     my ($class) = shift;
