@@ -1,3 +1,7 @@
+.project
+Changes
+DBIx-Foo-0.01.tar.gz
+DBIx-Foo-0.02.tar.gz
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
@@ -17,4 +21,6 @@ README.md
 t/01_use.t
 t/02_simple_queries.t
 t/03_sql_lite.t
+t/04_update_query.t
 t/99_pod.t
+test.db
