@@ -15,13 +15,12 @@ requires 'Log::Any'  => 0;
 requires 'Tie::IxHash' => 0;
 
 # Recommended modules
-recommends 'DBD::SQLite' => 0;
+#recommends 'DBD::SQLite' => 0;
 
 # Modules required for testing
 test_requires 'Test::More' => 0;
+test_requires 'DBD::SQLite' => 0;
 
 #manifest_skip;
-
-#no_index directory => 'sample';
 
 WriteAll;
