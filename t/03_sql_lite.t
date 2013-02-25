@@ -75,6 +75,10 @@ foreach my $i (1..5) {
 	is($new_id, $i, "Got a new_id: $new_id");
 }
 
+# for some reason on Windows platforms, CPANTesters is reporting 'table test already exists' in next test,
+# so I'm adding an extra 'drop table' here to see if it fixes the situation
+ok($dbh->do("drop table test;"), "Dropped table test");
+
 unlink $dbfile if -f $dbfile;
 
 undef $dbh;
@@ -108,5 +112,7 @@ foreach my $i (11..15) {
 
 	is($new_id, $i, "Got a new_id: $new_id");
 }
+
+unlink $dbfile if -f $dbfile;
 
 done_testing();
