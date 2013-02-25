@@ -1,6 +1,10 @@
 
+2013-02-25
+   - Development Release 0.03_1
+   - Add extra 'drop table' to try to fix failing CPENTesters reports for Windows Platform
+
 2013-02-22
-   - Release 0.02
+   - Release 0.03
    - Added missing test_requires DBD:SQLite
 
 2013-02-20
