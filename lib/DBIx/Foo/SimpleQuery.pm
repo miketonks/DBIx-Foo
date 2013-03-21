@@ -97,13 +97,6 @@ sub do
 	my ($self, $sql, $opts, @args) = @_;
 
 	nice_params(\$opts, \@args);
-
-	# MSSQL insert requires extra SCOPE_IDENTITY() call to give inserted value - current best solution MT (only way I can make it work...)
-	if ($self->dbh->get_info(17) eq 'Microsoft SQL Server' && $sql =~ /^insert/i) {
-		
-		return mssql_insert($self->dbh, $sql, $opts, @args);
-	}
-	
 	
 	my $result = $self->dbh->do($sql, $opts, @args);
 
@@ -111,7 +104,7 @@ sub do
 
 	if ($result && $sql =~ /^insert/i) {
 		
-		if (my $newid = $self->dbh->{mysql_insertid}) {
+		if (my $newid = $self->dbh->last_insert_id()) {
 		
 			$log->debug("Got insertid : $newid");
 		
