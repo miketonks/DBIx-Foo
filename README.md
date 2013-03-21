@@ -3,9 +3,21 @@ DBIx-Foo
 
 Simple Database Wrapper and Helper Functions.  Easy DB integration without the need for an ORM.
 
-** THIS IS WORK IN PROGRESS **
+***** THIS IS WORK IN PROGRESS *****
 
-This collection of modules has been in production use in several projects for a while, in private repositories.
+INSTALLATION
 
-I little bit of work is required to re purpose the code as a reusable module.
+To install this module type the following:
 
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+Or use CPAN / cpanm / carton to automate the process.
+
+PREREQUISITES
+
+    DBI
+    Exporter
+	Log::Any
