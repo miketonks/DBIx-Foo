@@ -12,11 +12,15 @@ use Log::Any qw($log);
 use Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref dbh_do do err last_insert_id);
+our @EXPORT_OK = qw(selectrow selectrow_array selectrow_hashref selectall selectall_arrayref selectall_hashref dbh_do do err last_insert_id update_query search_query);
 our %EXPORT_TAGS = (all => [@EXPORT_OK]);
 
 our $VERSION = '0.03_1';
 
+sub import
+{
+	warn "IMPORT";
+}
 sub new {
     my ($class) = shift;
     $class->connect(@_);
@@ -73,7 +77,12 @@ sub last_insert_id {
 
 sub update_query {
 	my ($self, $table) = @_;
-	return DBIx::Foo::UpdateQuery->new($table, $self);
+	return DBIx::Foo::UpdateQuery->new($table, $self->dbh);
+}
+
+sub search_query {
+	my ($self, $query, $page, $pagesize, $relation) = @_;
+	return DBIx::Foo::SearchQuery->new($self->dbh, $query, $page, $pagesize, $relation);
 }
 
 1;

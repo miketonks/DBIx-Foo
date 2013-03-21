@@ -3,35 +3,45 @@ package DBIx::Foo::SearchQuery;
 use strict;
 
 use Storable;
+use Log::Any qw($log);
 
-sub new {
+sub new
+{
+	my $class = shift;
+	my $dbh;
 
-        my $class = $_[0];
-		my $query = $_[1];
-		my $page = $_[2] || 1;
-		my $pagesize = $_[3] || 20;
-		my $relation = $_[4] || ' and ';
+	my $query = shift;
+		
+	if (ref($query)) {
+		$dbh = $query;
+		$query = shift;
+	}
 
-        my $self = {
-                query 	=> $query,
-				page 	=> $page,
-				pagesize => $pagesize,
-				relation => $relation,
-                debug 	=> 0
-        };
+	my $page = shift || 1;
+	my $pagesize = shift || 20;
+	my $relation = shift || ' and ';
 
-        bless $self, $class;
+	my $self = {
+		dbh		=> $dbh,
+		query 	=> $query,
+		page 	=> $page,
+		pagesize => $pagesize,
+		relation => $relation,
+		debug 	=> 0
+	};
 
-        return $self;
+	bless $self, $class;
+
+	return $self;
 }
 
 ####################################################
 # Properties
 #
 
-sub IsEmptySearch {
-
-	my $self = $_[0];
+sub IsEmptySearch
+{
+	my $self = shift;
 
 	return 0 if scalar keys %{$self->{filter_fields}} > 0;
 	return 0 if scalar keys %{$self->{search_fields}} > 0;
@@ -41,26 +51,19 @@ sub IsEmptySearch {
 	return 1;
 }
 
-sub CurrentPage {
-
-	my $self = $_[0];
-
-	return $self->{page};
-
+sub CurrentPage
+{
+	return shift->{page};
 }
 
-sub PageSize {
-
-	my $self = $_[0];
-
-	return $self->{pagesize};
-
+sub PageSize 
+{
+	return shift->{pagesize};
 }
 
-
-sub RowcountQuery {
-
-	my $self = $_[0];
+sub RowcountQuery 
+{
+	my $self = shift;
 
 	my ($where, @args) = $self->WhereClause();
 
@@ -71,47 +74,53 @@ sub RowcountQuery {
 	return $query, @args;
 }
 
-sub DoSearch {
-
+sub DoSearch
+{
 	my ($self, $dbh) = @_;
 
+	$dbh = $self->{dbh} unless $dbh;
+	
 	my ($query, @args) = $self->Query();
 
 	return $dbh->selectall_arrayref($query, { Slice => {} }, @args);
 }
 
-sub DoSearchAsArray {
-
+sub DoSearchAsArray
+{
 	my ($self, $dbh) = @_;
+
+	$dbh = $self->{dbh} unless $dbh;
 
 	my ($query, @args) = $self->Query();
 
 	return $dbh->selectall_arrayref($query, { Slice => () }, @args);
 }
 
-sub DoSearchAsColArray {
-
+sub DoSearchAsColArray
+{
 	my ($self, $dbh) = @_;
 
+	$dbh = $self->{dbh} unless $dbh;
+	
 	my ($query, @args) = $self->Query();
 
 	return $dbh->selectcol_arrayref($query, @args);
 }
 
-sub GetRowcount {
-
+sub GetRowcount
+{
 	my ($self, $dbh) = @_;
 
+	$dbh = $self->{dbh} unless $dbh;
+	
 	my ($query, @args) = $self->RowcountQuery();
 
 	return $dbh->selectrow_array($query, {}, @args);
 }
 
-sub Query {
-
-	my $self = $_[0];
-
-    my $logger = Log::Log4perl->get_logger('db.searchquery.query');
+sub Query
+{
+	my $self = shift;
 
 	my $caller = ( caller(2) )[3];
 
@@ -119,14 +128,14 @@ sub Query {
 
 	my $query = $self->{query} . $where . $self->SortOrder . $self->Limit;
 
-	$logger->debug("$query (" . join(", ", @args) . ") called by $caller");
+	$log->debug("$query (" . join(", ", @args) . ") called by $caller");
 
 	return $query, @args;
 }
 
-sub WhereClause {
-
-	my $self = $_[0];
+sub WhereClause
+{
+	my $self = shift;
 
 	my $search = "";
 	my $filter = "";
@@ -210,9 +219,9 @@ sub WhereClause {
 	return $where, @args;
 }
 
-sub SortOrder {
-
-	my $self = $_[0];
+sub SortOrder
+{
+	my $self = shift;
 
 	my $orderby;
 
@@ -232,9 +241,9 @@ sub SortOrder {
 	return $orderby;
 }
 
-sub Limit {
-
-	my $self = $_[0];
+sub Limit
+{
+	my $self = shift;
 
 	# TODO Add logic to build limit clause from object properties, and handle pages
 
@@ -277,13 +286,11 @@ sub addMatch
 	}
 }
 
-sub addPredicate {
-
-	my $self = $_[0];
-	my $value = $_[1];
+sub addPredicate
+{
+	my ($self, $value) = @_;
 
 	$self->{predicate_fields}->{predicate} = $value;
-
 }
 
 sub addSql
@@ -300,8 +307,8 @@ sub addSql
 	}
 }
 
-sub addSort {
-
+sub addSort
+{
 	my $self = shift;
 	my $field = shift;
 	my $order = shift || "ASC";
@@ -319,14 +326,12 @@ sub addSort {
 	}
 }
 
-sub freeze {
-
+sub freeze
+{
 	my $self = shift;
 
 	return Storable::freeze($self);
 }
-
-
 
 1;
 
