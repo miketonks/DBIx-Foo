@@ -169,3 +169,25 @@ sub nice_params
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+DBIx::Foo::SimpleQuery - Simple Database Helper Functions
+
+=head1 SYNOPSIS
+
+  my $dbh = DBIx::Foo->connect(...) # or ->new
+
+  my $rows = $dbh->selectall("select * from test");
+
+  my $row = $dbh->selectrow("select * from test where ID = ?", 1); # alias for selectrow_hashref
+
+  # or in your framework or object module  
+  use DBIx::Foo qw/all/;
+  
+  my $rows = $self->selectall("select * from test");
+
+=cut
+  

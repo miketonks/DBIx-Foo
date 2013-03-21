@@ -335,3 +335,23 @@ sub freeze
 
 1;
 
+__END__
+
+=head1 NAME
+
+DBIx::Foo::SearchQuery - Class to build complex search queries (where clause)
+
+=head1 SYNOPSIS
+
+  my $dbh = DBIx::Foo->connect(...) # or ->new
+
+  my $query = $dbh->search_query('select * from xyzzy');
+
+  $query->addFilter('FOO', 'a');
+  $query->addSearch('bar', 'd');
+
+  $query->addSort('ID', 'desc');
+
+  my $result = $query->DoSearch;
+
+=cut
