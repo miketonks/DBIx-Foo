@@ -103,6 +103,22 @@ DBIx::Foo - Simple Database Wrapper and Helper Functions.  Easy DB integration w
 
   my $row = $dbh->selectrow("select * from test where ID = ?", 1); # alias for selectrow_hashref
 
+=head2 DBIx::Foo::SearchQuery
+
+For building complex select queries with filters, pagination, order, and support for rowcount query (total rows).
+
+	# search with pagination
+	my $query = $dbh->search_query('select * from test', 1, 100);
+
+	$query->addFilter('type', $type);
+	$query->addFilter('!id',  $id);
+
+	$query->addSort($sort);
+
+	# Perform the search
+	my $rows = $query->DoSearch;
+	my $total = $query->GetRowcount;
+
 =head2 DBIx::Foo::UpdateQuery
 
 This can be used to build a query for writing to the database.  First an insert statement:
